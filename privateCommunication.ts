@@ -4,7 +4,7 @@ interface CommunicationEvent {
   all?: boolean,
   receiveApp?: string | string[];
   recipientMessage: any;
-  timestamp?: string | number;
+  sendDateTime?: string;
   sender: string;
 }
 
@@ -59,7 +59,7 @@ class PrivateCommunication {
   private onEventEmitterCenter(info: CommunicationEvent) {
     try {
       console.groupCollapsed(`📨 【主应用服务】收到消息 (${info.sender || 'unknown'} ====> ${info.receiveApp})`);
-      console.log(`消息数据[内容:${info.recipientMessage}, 时间戳:${info.timestamp}]`);
+      console.log(`消息数据[内容:${info.recipientMessage}, 发送时间:${info.sendDateTime}]`);
 
       // 如果没有应用，直接返回
       if (this.apps.size === 0) {
@@ -68,13 +68,13 @@ class PrivateCommunication {
         return;
       }
 
-      const { all, receiveApp, sender, recipientMessage, timestamp } = info;
+      const { all, receiveApp, sender, recipientMessage, sendDateTime } = info;
 
       // 发送信息
       const newRecipientMessage = {
         sender,
         recipientMessage,
-        timestamp
+        sendDateTime
       }
 
       // 发送给所有应用
@@ -158,7 +158,7 @@ class PrivateCommunication {
   //   console.log(`应用 ${name} 收到消息:`, {
   //     sender: event.sender,
   //     type: typeof event.recipientMessage,
-  //     timestamp: event.timestamp
+  //     sendDateTime: event.sendDateTime
   //   });
   // };
 
@@ -213,7 +213,7 @@ class PrivateCommunication {
           receiveApp,
           recipientMessage,
           sender: name,
-          timestamp: Date.now(),
+          sendDateTime: this.getCurrentDateTime(),
         };
 
         // 通过主服务转发消息
@@ -360,6 +360,23 @@ class PrivateCommunication {
       isInitialized: true,
       eventName: this.eventName
     };
+  }
+
+  /**
+   * 获取系统时间
+   */
+  getCurrentDateTime() {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   }
 
   /**
