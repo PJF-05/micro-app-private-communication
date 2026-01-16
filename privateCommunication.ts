@@ -1,15 +1,16 @@
 import EventEmitter from "./eventEmitter";
 
 interface CommunicationEvent {
-  receiveApp: 'all' | string | string[];
+  all?: boolean,
+  receiveApp?: string | string[];
   recipientMessage: any;
   timestamp?: string | number;
-  sender?: string;
+  sender: string;
 }
 
 interface appOption {
   name: string,
-  receiveScopeApp: 'all' | string | string[];
+  receiveScopeApp: string | string[];
 }
 
 interface AppEventEmitter {
@@ -57,9 +58,8 @@ class PrivateCommunication {
    */
   private onEventEmitterCenter(info: CommunicationEvent) {
     try {
-      console.groupCollapsed(`📨 收到消息 (${info.sender || 'unknown'} -> ${info.receiveApp})`);
-      console.log('消息内容:', info.recipientMessage);
-      console.log('时间戳:', info.timestamp);
+      console.groupCollapsed(`📨 【主应用服务】收到消息 (${info.sender || 'unknown'} ====> ${info.receiveApp})`);
+      console.log(`消息数据[内容:${info.recipientMessage}, 时间戳:${info.timestamp}]`);
 
       // 如果没有应用，直接返回
       if (this.apps.size === 0) {
@@ -68,60 +68,70 @@ class PrivateCommunication {
         return;
       }
 
-      const { receiveApp, sender } = info;
+      const { all, receiveApp, sender, recipientMessage, timestamp } = info;
+
+      // 发送信息
+      const newRecipientMessage = {
+        sender,
+        recipientMessage,
+        timestamp
+      }
 
       // 发送给所有应用
-      if (receiveApp === 'all') {
-        console.log(`发送给所有应用 (${this.apps.size} 个)`);
+      if (all === true) {
         for (const [appName, appEventEmitter] of this.apps) {
           // 跳过发送者自身
-          if (sender !== appName && this.isReceiveScopeApp(appName, sender)) {
-            console.log(`   -> ${appName}`);
-            appEventEmitter.emitAppEventEmitter(info);
-          } else {
-            console.warn(`应用 ${appName} 不存在${sender}设置接收范围`);
-          }
-        }
-      }
-      // 发送给多个应用
-      else if (Array.isArray(receiveApp)) {
-        console.log(`发送给 ${receiveApp.length} 个应用:`, receiveApp);
-        receiveApp.forEach((appName) => {
-          if (!this.hasApp(appName)) {
-            console.warn(`应用 ${appName} 不存在`);
-            return
-          }
           if (this.isReceiveScopeApp(appName, sender)) {
-            // 跳过发送者自身
             if (sender !== appName) {
-              console.log(`   -> ${appName}`);
-              const app = this.apps.get(appName);
-              app.emitAppEventEmitter(info);
+              console.log(`消息已发送[${appName}]`);
+              appEventEmitter.emitAppEventEmitter(newRecipientMessage);
             }
           } else {
             console.warn(`应用 ${appName} 不存在${sender}设置接收范围`);
           }
-        });
-      }
-      // 发送给单个应用
-      else if (typeof receiveApp === 'string') {
-        console.log(`发送给单个应用: ${receiveApp}`);
-        if (!this.hasApp(receiveApp)) {
-          console.warn(`应用 ${receiveApp} 不存在`);
-          return
         }
-        if (this.isReceiveScopeApp(receiveApp, sender)) {
-          // 跳过发送者自身
-          if (sender !== receiveApp) {
-            const app = this.apps.get(receiveApp);
-            app.emitAppEventEmitter(info);
+      }
+      else if (all === false) {
+        if (Array.isArray(receiveApp)) {
+          receiveApp.forEach((appName) => {
+            if (!this.hasApp(appName)) {
+              console.warn(`应用 ${appName} 不存在`);
+              return
+            }
+            if (this.isReceiveScopeApp(appName, sender)) {
+              // 跳过发送者自身
+              if (sender !== appName) {
+                console.log(`消息已发送给[${appName}]`);
+                const app = this.apps.get(appName);
+                app.emitAppEventEmitter(newRecipientMessage);
+              }
+            } else {
+              console.warn(`应用 ${appName} 不存在${sender}设置接收范围`);
+            }
+          });
+        }
+        // 发送给单个应用
+        else if (typeof receiveApp === 'string') {
+          if (!this.hasApp(receiveApp)) {
+            console.warn(`应用 ${receiveApp} 不存在`);
+            return
           }
-        } else {
-          console.warn(`应用 ${receiveApp} 不存在${sender}设置接收范围`);
+          if (this.isReceiveScopeApp(receiveApp, sender)) {
+            // 跳过发送者自身
+            if (sender !== receiveApp) {
+              console.log(`消息已发送给[${receiveApp}]`);
+              const app = this.apps.get(receiveApp);
+              app.emitAppEventEmitter(newRecipientMessage);
+            }
+          } else {
+            console.warn(`应用 ${receiveApp} 不存在${sender}设置接收范围`);
+          }
         }
-      }
-      else {
-        throw new Error('receiveApp 参数错误，必须是 "all"、字符串或字符串数组');
+        else {
+          throw new Error('receiveApp 参数错误，必须是字符串或字符串数组');
+        }
+      } else {
+        throw new Error('all 参数错误，必须是boolean');
       }
 
       console.groupEnd();
@@ -196,9 +206,10 @@ class PrivateCommunication {
       },
 
       // 发送消息（通过主服务转发）
-      emitPrivateCommunication: (receiveApp: 'all' | string | string[], recipientMessage: any) => {
+      emitPrivateCommunication: (recipientMessage: any, all: boolean = true, receiveApp: string | string[] = '') => {
         console.log(`应用 ${name} 发送消息到: ${receiveApp}`);
         const info: CommunicationEvent = {
+          all,
           receiveApp,
           recipientMessage,
           sender: name,
@@ -249,8 +260,6 @@ class PrivateCommunication {
    */
   private isReceiveScopeApp(name: string, sender: string | any) {
     const { receiveScopeApp } = this.apps.get(sender);
-    console.log('---', receiveScopeApp);
-
     if (typeof receiveScopeApp === 'string') {
       if (receiveScopeApp === 'all') {
         return true;
@@ -267,6 +276,7 @@ class PrivateCommunication {
   /**
    * 注销应用
    * @param name 应用名称
+   * @returns
    */
   unregisterApp(name: string): boolean {
     if (this.hasApp(name)) {
@@ -287,6 +297,7 @@ class PrivateCommunication {
 
   /**
    * 获取所有注册的应用
+   * @returns
    */
   getRegisteredApps(): string[] {
     return Array.from(this.apps.keys());
@@ -294,6 +305,7 @@ class PrivateCommunication {
 
   /**
    * 获取应用数量
+   * @returns
    */
   getAppCount(): number {
     return this.apps.size;
@@ -301,6 +313,7 @@ class PrivateCommunication {
 
   /**
    * 检查应用是否存在
+   * @returns
    */
   hasApp(name: string): boolean {
     return this.apps.has(name);
@@ -308,6 +321,7 @@ class PrivateCommunication {
 
   /**
    * 获取对应应用
+   * @returns
    */
   getApp(name: string): boolean {
     if (!this.hasApp(name)) {
@@ -318,6 +332,7 @@ class PrivateCommunication {
 
   /**
    * 清空所有应用
+   * @returns
    */
   clearAllApps(): number {
     const count = this.apps.size;
@@ -336,6 +351,7 @@ class PrivateCommunication {
 
   /**
    * 获取系统状态
+   * @returns
    */
   getSystemStatus() {
     return {
