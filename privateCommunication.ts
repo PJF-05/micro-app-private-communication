@@ -108,6 +108,7 @@ class PrivateCommunication {
         console.log(`发送给单个应用: ${receiveApp}`);
         if (!this.hasApp(receiveApp)) {
           console.warn(`应用 ${receiveApp} 不存在`);
+          return
         }
         if (this.isReceiveScopeApp(receiveApp, sender)) {
           // 跳过发送者自身
