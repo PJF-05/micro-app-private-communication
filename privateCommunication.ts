@@ -10,7 +10,7 @@ interface CommunicationEvent {
 
 interface appOption {
   name: string,
-  receiveScopeApp: string | string[];
+  receiveScopeApp: 'all' | string | string[];
 }
 
 interface AppEventEmitter {
@@ -18,7 +18,7 @@ interface AppEventEmitter {
   offPrivateCommunication: (listener: (event: CommunicationEvent) => void) => void;
   oncePrivateCommunication: (listener: (event: CommunicationEvent) => void) => void;
   removeAllPrivateCommunication: () => void;
-  emitPrivateCommunication: (receiveApp: 'all' | string | string[], recipientMessage: any) => void;
+  emitPrivateCommunication: (recipientMessage: any, all: boolean, receiveApp: string | string[]) => void;
 }
 
 /**
@@ -58,7 +58,7 @@ class PrivateCommunication {
    */
   private onEventEmitterCenter(info: CommunicationEvent) {
     try {
-      console.groupCollapsed(`📨 【主应用服务】收到消息 (${info.sender || 'unknown'} ====> ${info.receiveApp})`);
+      console.groupCollapsed(`📨 【主应用服务】收到私密性消息 (${info.sender || 'unknown'} ====> ${info.receiveApp})`);
       console.log(`消息数据[内容:${info.recipientMessage}, 发送时间:${info.sendDateTime}]`);
 
       // 如果没有应用，直接返回
@@ -91,7 +91,9 @@ class PrivateCommunication {
           }
         }
       }
+      // 不是发送给所有应用
       else if (all === false) {
+        // 发送给多个应用
         if (Array.isArray(receiveApp)) {
           receiveApp.forEach((appName) => {
             if (!this.hasApp(appName)) {
@@ -131,7 +133,7 @@ class PrivateCommunication {
           throw new Error('receiveApp 参数错误，必须是字符串或字符串数组');
         }
       } else {
-        throw new Error('all 参数错误，必须是boolean');
+        throw new Error('all 参数错误，必须是boolean类型');
       }
 
       console.groupEnd();
