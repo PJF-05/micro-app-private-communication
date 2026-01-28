@@ -5,7 +5,8 @@ interface CommunicationEvent {
   receiveApp?: string | string[];
   recipientMessage: any;
   sendDateTime?: string;
-  sender: string;
+  sender?: string;
+  isMain: boolean;
 }
 
 interface appOption {
@@ -68,7 +69,7 @@ class PrivateCommunication {
         return;
       }
 
-      const { all, receiveApp, sender, recipientMessage, sendDateTime } = info;
+      const { all, receiveApp, sender, recipientMessage, sendDateTime, isMain } = info;
 
       // 发送信息
       const newRecipientMessage = {
@@ -81,7 +82,7 @@ class PrivateCommunication {
       if (all === true) {
         for (const [appName, appEventEmitter] of this.apps) {
           // 跳过发送者自身
-          if (this.isReceiveScopeApp(appName, sender)) {
+          if (this.isReceiveScopeApp(appName, sender, isMain)) {
             if (sender !== appName) {
               console.log(`消息已发送[${appName}]`);
               appEventEmitter.emitAppEventEmitter(newRecipientMessage);
@@ -100,7 +101,7 @@ class PrivateCommunication {
               console.warn(`应用 ${appName} 不存在`);
               return
             }
-            if (this.isReceiveScopeApp(appName, sender)) {
+            if (this.isReceiveScopeApp(appName, sender, isMain)) {
               // 跳过发送者自身
               if (sender !== appName) {
                 console.log(`消息已发送给[${appName}]`);
@@ -118,7 +119,7 @@ class PrivateCommunication {
             console.warn(`应用 ${receiveApp} 不存在`);
             return
           }
-          if (this.isReceiveScopeApp(receiveApp, sender)) {
+          if (this.isReceiveScopeApp(receiveApp, sender, isMain)) {
             // 跳过发送者自身
             if (sender !== receiveApp) {
               console.log(`消息已发送给[${receiveApp}]`);
@@ -150,6 +151,25 @@ class PrivateCommunication {
   private emitEventEmitterCenter(info: CommunicationEvent) {
     console.log(`发布事件: ${info.sender || 'system'} -> ${info.receiveApp}`);
     this.eventEmitterCenter.emit(this.eventName, info);
+  }
+
+  /**
+   * 发送消息
+   * @param recipientMessage 消息
+   * @param all 是否发送全部子应用
+   * @param receiveApp 接收的子应用名称
+   */
+  emitPrivateCommunication(recipientMessage: any, all: boolean = true, receiveApp: string | string[] = '') {
+    const info: CommunicationEvent = {
+      all,
+      receiveApp,
+      recipientMessage,
+      sendDateTime: this.getCurrentDateTime(),
+      isMain: true
+    };
+
+    // 通过主服务转发消息
+    this.emitEventEmitterCenter(info);
   }
 
   // /**
@@ -216,6 +236,7 @@ class PrivateCommunication {
           recipientMessage,
           sender: name,
           sendDateTime: this.getCurrentDateTime(),
+          isMain: false
         };
 
         // 通过主服务转发消息
@@ -260,7 +281,10 @@ class PrivateCommunication {
    * @param name 应用名称
    * @returns
    */
-  private isReceiveScopeApp(name: string, sender: string | any) {
+  private isReceiveScopeApp(name: string, sender: string | any, isMain: boolean) {
+    if (isMain) {
+      return true
+    }
     const { receiveScopeApp } = this.apps.get(sender);
     if (typeof receiveScopeApp === 'string') {
       if (receiveScopeApp === 'all') {
