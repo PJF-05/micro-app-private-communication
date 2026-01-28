@@ -266,6 +266,7 @@ class PrivateCommunication {
   /**
    * 设置子应用内容接收范围
    * @param name 应用名称
+   * @param scope 设置子应用内容接收范围
    */
   setReceiveScopeApp(name: string, scope: 'all' | string | string[]) {
     if (!this.hasApp(name)) {
@@ -339,6 +340,7 @@ class PrivateCommunication {
 
   /**
    * 检查应用是否存在
+   * @param name 应用名称
    * @returns
    */
   hasApp(name: string): boolean {
@@ -347,6 +349,7 @@ class PrivateCommunication {
 
   /**
    * 获取对应应用
+   * @param name 应用名称
    * @returns
    */
   getApp(name: string): boolean {
@@ -390,6 +393,7 @@ class PrivateCommunication {
 
   /**
    * 获取系统时间
+   * @returns
    */
   getCurrentDateTime() {
     const now = new Date();
