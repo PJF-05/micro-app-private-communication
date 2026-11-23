@@ -1,4 +1,4 @@
-# private-communication
+# micro-app-private-communication
 
 #### 介绍
 问题：
