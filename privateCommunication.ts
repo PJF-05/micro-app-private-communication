@@ -59,7 +59,7 @@ class PrivateCommunication {
    */
   private onEventEmitterCenter(info: CommunicationEvent) {
     try {
-      console.groupCollapsed(`📨 【主应用服务】收到私密性消息 (${info.sender || 'unknown'} ====> ${info.receiveApp})`);
+      console.groupCollapsed(`【主应用服务】收到私密性消息 (${info.sender || 'unknown'} ====> ${info.receiveApp})`);
       console.log(`消息数据[内容:${info.recipientMessage}, 发送时间:${info.sendDateTime}]`);
 
       // 如果没有应用，直接返回
